@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f9d58">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="記帳本">
+  <title>手機記帳本</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- SheetJS：Excel 匯出函式庫 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- 頂部標題列 -->
+    <header class="app-header">
+      <h1 id="page-title">新增交易</h1>
+    </header>
+
+    <main class="page-container">
+      <!-- ===== 新增頁 ===== -->
+      <section class="page active" id="page-add">
+        <form id="transaction-form" class="form" autocomplete="off">
+          <div class="field">
+            <label for="t-date">日期</label>
+            <input type="date" id="t-date" required>
+          </div>
+
+          <input type="hidden" id="t-type" value="支出">
+
+          <div class="field">
+            <label for="t-amount">金額</label>
+            <input type="number" id="t-amount" inputmode="decimal" min="0" step="any" placeholder="0" required>
+          </div>
+
+          <div class="field">
+            <label for="t-category">類型</label>
+            <select id="t-category" required></select>
+          </div>
+
+          <div class="field">
+            <label for="t-note">備註（可選）</label>
+            <input type="text" id="t-note" placeholder="例：7-11 早餐" maxlength="100">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg">儲存</button>
+        </form>
+      </section>
+
+      <!-- ===== 紀錄頁 ===== -->
+      <section class="page" id="page-list">
+        <div class="list-toolbar">
+          <select id="filter-month" aria-label="篩選月份"></select>
+          <button type="button" id="btn-export" class="btn btn-export">匯出 Excel</button>
+        </div>
+        <div class="summary-bar" id="summary-bar"></div>
+        <div id="transaction-list" class="transaction-list"></div>
+      </section>
+
+      <!-- ===== 設定頁 ===== -->
+      <section class="page" id="page-settings">
+        <div class="settings-group">
+          <h3>類型管理</h3>
+          <div id="cat-expense" class="cat-list"></div>
+          <div class="add-cat-row">
+            <input type="text" id="new-cat-支出" placeholder="新增類型名稱" maxlength="20">
+            <button type="button" class="btn btn-add" data-type="支出">＋</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>資料管理</h3>
+          <p class="hint">所有資料儲存在這支手機本機，不會上傳。建議定期匯出 Excel 備份。</p>
+          <button type="button" id="btn-clear-all" class="btn btn-danger">清除所有交易紀錄</button>
+        </div>
+
+        <div class="settings-group">
+          <h3>關於</h3>
+          <p class="hint">手機記帳本 v1.0 · 完全離線運作</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- 底部導覽 -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-page="add" type="button">
+        <span class="nav-icon">＋</span>
+        <span class="nav-label">新增</span>
+      </button>
+      <button class="nav-btn" data-page="list" type="button">
+        <span class="nav-icon">≡</span>
+        <span class="nav-label">紀錄</span>
+      </button>
+      <button class="nav-btn" data-page="settings" type="button">
+        <span class="nav-icon">⚙</span>
+        <span class="nav-label">設定</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- 匯出 Modal -->
+  <div id="export-modal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <h2>匯出 Excel</h2>
+      <div class="field">
+        <label for="export-year">年份</label>
+        <select id="export-year"></select>
+      </div>
+      <div class="field">
+        <label for="export-quarter">季度</label>
+        <select id="export-quarter">
+          <option value="all">整年</option>
+          <option value="1">Q1（1–3 月）</option>
+          <option value="2">Q2（4–6 月）</option>
+          <option value="3">Q3（7–9 月）</option>
+          <option value="4">Q4（10–12 月）</option>
+        </select>
+      </div>
+      <p class="hint" id="export-hint"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="export-cancel">取消</button>
+        <button type="button" class="btn btn-primary" id="export-confirm">下載</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 編輯 Modal -->
+  <div id="edit-modal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <h2>編輯交易</h2>
+      <form id="edit-form" class="form" autocomplete="off">
+        <input type="hidden" id="e-id">
+        <div class="field">
+          <label for="e-date">日期</label>
+          <input type="date" id="e-date" required>
+        </div>
+        <input type="hidden" id="e-type" value="支出">
+        <div class="field">
+          <label for="e-amount">金額</label>
+          <input type="number" id="e-amount" inputmode="decimal" min="0" step="any" required>
+        </div>
+        <div class="field">
+          <label for="e-category">類型</label>
+          <select id="e-category" required></select>
+        </div>
+        <div class="field">
+          <label for="e-note">備註</label>
+          <input type="text" id="e-note" maxlength="100">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="edit-cancel">取消</button>
+          <button type="button" class="btn btn-danger" id="edit-delete">刪除</button>
+          <button type="submit" class="btn btn-primary">儲存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 浮動訊息 -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- 載入順序：DB → Exporter → App -->
+  <script src="js/db.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // 註冊 Service Worker，讓 App 可離線使用
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').catch(err => {
+          console.warn('Service Worker 註冊失敗（離線功能不可用）:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

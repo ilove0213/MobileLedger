@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 圓角矩形背景 -->
+  <rect width="512" height="512" rx="96" fill="#0f9d58"/>
+  <!-- 美元符號 -->
+  <text x="256" y="370" font-family="Arial Black, Arial, sans-serif" font-size="380"
+        font-weight="900" text-anchor="middle" fill="white">$</text>
+</svg>
