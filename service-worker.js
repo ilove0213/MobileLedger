@@ -8,7 +8,7 @@
  *  - fetch：先看本地快取，沒有再走網路；網路回應成功的 GET 順手快取起來
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `mobile-ledger-${CACHE_VERSION}`;
 
 /** 預先快取的核心資源 */
