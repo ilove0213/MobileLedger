@@ -75,7 +75,10 @@
 
         <div class="settings-group">
           <h3>資料管理</h3>
-          <p class="hint">所有資料儲存在這支手機本機，不會上傳。建議定期匯出 Excel 備份。</p>
+          <p class="hint">所有資料儲存在這支手機本機，不會上傳。建議定期匯出備份。</p>
+          <button type="button" id="btn-backup-export" class="btn btn-primary">導出 JSON 備份</button>
+          <button type="button" id="btn-backup-import" class="btn btn-primary">導入 JSON 備份</button>
+          <input type="file" id="backup-file-input" accept=".json" style="display: none;">
           <button type="button" id="btn-clear-all" class="btn btn-danger">清除所有交易紀錄</button>
         </div>
 

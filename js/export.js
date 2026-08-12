@@ -9,6 +9,69 @@
 
 class ExcelExporter {
   /**
+   * 完整備份導出 — 將交易與分類導出為 JSON
+   * @param {Transaction[]} transactions
+   * @param {Category[]} categories
+   * @returns {{ filename: string }}
+   */
+  static exportToJSON(transactions, categories) {
+    const backup = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      transactions,
+      categories
+    };
+    const json = JSON.stringify(backup, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `記帳備份_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    return { filename: link.download };
+  }
+
+  /**
+   * 從 JSON 備份導入（清空舊資料，寫入新資料）
+   * @param {File} file
+   * @returns {Promise<{ transactionCount: number, categoryCount: number }>}
+   */
+  static async importFromJSON(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const backup = JSON.parse(e.target.result);
+          if (!backup.transactions || !Array.isArray(backup.transactions)) {
+            throw new Error('備份格式不正確');
+          }
+          // 清空舊資料
+          await window.ledgerDB.clearAllTransactions();
+          await window.ledgerDB.clearAllCategories();
+          // 寫入新資料
+          for (const tx of backup.transactions) {
+            await window.ledgerDB.addTransaction(tx);
+          }
+          if (backup.categories && Array.isArray(backup.categories)) {
+            for (const cat of backup.categories) {
+              await window.ledgerDB.addCategory(cat);
+            }
+          }
+          resolve({
+            transactionCount: backup.transactions.length,
+            categoryCount: backup.categories ? backup.categories.length : 0
+          });
+        } catch (err) {
+          reject(new Error('備份導入失敗：' + err.message));
+        }
+      };
+      reader.onerror = () => reject(new Error('檔案讀取失敗'));
+      reader.readAsText(file);
+    });
+  }
+
+  /**
    * 主要匯出方法
    * @param {Transaction[]} transactions - 所有交易（會在內部依年份/季度篩選）
    * @param {number} year                - 年份，例如 2026

@@ -210,6 +210,14 @@ class LedgerDB {
   getAllCategories() {
     return this._run('categories', 'readonly', s => s.getAll());
   }
+
+  /**
+   * 清空所有分類
+   * @returns {Promise<void>}
+   */
+  clearAllCategories() {
+    return this._run('categories', 'readwrite', s => s.clear());
+  }
 }
 
 // 暴露為全域單例（搭配 <script> 標籤載入的方式）

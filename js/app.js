@@ -132,6 +132,17 @@ class LedgerApp {
       });
     });
 
+    // --- 設定頁：備份 ---
+    document.getElementById('btn-backup-export').addEventListener('click', () => this._handleBackupExport());
+    document.getElementById('btn-backup-import').addEventListener('click', () => {
+      document.getElementById('backup-file-input').click();
+    });
+    document.getElementById('backup-file-input').addEventListener('change', e => {
+      const file = /** @type {HTMLInputElement} */ (e.target).files?.[0];
+      if (file) this._handleBackupImport(file);
+      e.target.value = ''; // 清空，讓同一檔案也能再選一次
+    });
+
     // --- 設定頁：清除所有資料 ---
     document.getElementById('btn-clear-all').addEventListener('click', () => this._handleClearAll());
 
@@ -539,6 +550,43 @@ class LedgerApp {
     } catch (err) {
       console.error('刪除分類失敗:', err);
       this._toast('刪除失敗：' + err.message);
+    }
+  }
+
+  // ========== 操作：備份 ==========
+
+  /**
+   * 導出 JSON 備份
+   * @private
+   */
+  _handleBackupExport() {
+    try {
+      const result = window.excelExporter.exportToJSON(this.transactions, this.categories);
+      this._toast(`已導出備份：${result.filename}`);
+    } catch (err) {
+      console.error('導出備份失敗:', err);
+      this._toast('導出失敗：' + err.message);
+    }
+  }
+
+  /**
+   * 導入 JSON 備份
+   * @param {File} file
+   * @private
+   */
+  async _handleBackupImport(file) {
+    if (!confirm('確定要導入備份？現有資料將被完全替換。此動作無法復原。')) return;
+
+    try {
+      const result = await window.excelExporter.importFromJSON(file);
+      await this._reloadData();
+      this._renderCategorySettings();
+      this._renderMonthFilter();
+      this._renderTransactionList();
+      this._toast(`已導入備份：${result.transactionCount} 筆交易、${result.categoryCount} 個分類`);
+    } catch (err) {
+      console.error('導入備份失敗:', err);
+      this._toast('導入失敗：' + err.message);
     }
   }
 
