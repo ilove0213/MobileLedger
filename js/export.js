@@ -9,18 +9,28 @@
 
 class ExcelExporter {
   /**
+   * 建立備份物件（不觸發下載），供本機匯出與雲端上傳共用
+   * @param {Transaction[]} transactions
+   * @param {Category[]} categories
+   * @returns {{ version: number, exportedAt: string, transactions: Transaction[], categories: Category[] }}
+   */
+  static buildBackupObject(transactions, categories) {
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      transactions,
+      categories
+    };
+  }
+
+  /**
    * 完整備份導出 — 將交易與分類導出為 JSON
    * @param {Transaction[]} transactions
    * @param {Category[]} categories
    * @returns {{ filename: string }}
    */
   static exportToJSON(transactions, categories) {
-    const backup = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      transactions,
-      categories
-    };
+    const backup = ExcelExporter.buildBackupObject(transactions, categories);
     const json = JSON.stringify(backup, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

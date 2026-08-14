@@ -8,7 +8,7 @@
  *  - fetch：先看本地快取，沒有再走網路；網路回應成功的 GET 順手快取起來
  */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `mobile-ledger-${CACHE_VERSION}`;
 
 /** 預先快取的核心資源 */
@@ -20,6 +20,8 @@ const CORE_ASSETS = [
   './js/db.js',
   './js/app.js',
   './js/export.js',
+  './js/drive-config.js',
+  './js/drive-backup.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
@@ -29,10 +31,11 @@ const CORE_ASSETS = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      // 用 add 個別處理，避免一個失敗整批 reject
+      // 用 add 個別處理，避免一個失敗整批 reject；
+      // 強制略過瀏覽器 HTTP 快取，確保每次安裝都抓到伺服器上真正最新的檔案
       return Promise.all(
         CORE_ASSETS.map(url =>
-          cache.add(url).catch(err => console.warn('快取失敗:', url, err))
+          cache.add(new Request(url, { cache: 'reload' })).catch(err => console.warn('快取失敗:', url, err))
         )
       );
     })

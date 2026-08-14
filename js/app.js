@@ -43,6 +43,20 @@ class LedgerApp {
     this._renderCategorySelect('t-category', this.formType);
     this._renderCategorySettings();
     this._renderTransactionList();
+    this._renderDriveStatus();
+    this._autoBackupToDrive(); // 不 await：背景靜默執行，失敗也不影響 App 啟動
+  }
+
+  /**
+   * 嘗試靜默雲端硬碟自動備份（App 啟動時呼叫一次）
+   * @private
+   */
+  async _autoBackupToDrive() {
+    const backedUp = await window.driveBackup.autoBackupIfNeeded(this.transactions, this.categories);
+    if (backedUp) {
+      this._renderDriveStatus();
+      this._toast('已自動備份到雲端硬碟');
+    }
   }
 
   /**
@@ -145,6 +159,10 @@ class LedgerApp {
 
     // --- 設定頁：清除所有資料 ---
     document.getElementById('btn-clear-all').addEventListener('click', () => this._handleClearAll());
+
+    // --- 設定頁：雲端硬碟 ---
+    document.getElementById('btn-drive-link').addEventListener('click', () => this._handleDriveLink());
+    document.getElementById('btn-drive-unlink').addEventListener('click', () => this._handleDriveUnlink());
 
     // --- 編輯 Modal：類型切換 ---
     document.querySelectorAll('.type-tabs[data-form="edit"] .type-tab').forEach(tab => {
@@ -588,6 +606,80 @@ class LedgerApp {
       console.error('導入備份失敗:', err);
       this._toast('導入失敗：' + err.message);
     }
+  }
+
+  // ========== 操作：雲端硬碟 ==========
+
+  /**
+   * 渲染雲端硬碟連結狀態文字與按鈕顯示
+   * @private
+   */
+  _renderDriveStatus() {
+    const hint = document.getElementById('drive-status-hint');
+    const linkBtn = document.getElementById('btn-drive-link');
+    const unlinkBtn = document.getElementById('btn-drive-unlink');
+
+    if (!window.driveBackup.isConfigured) {
+      hint.textContent = '尚未設定（需先在 js/drive-config.js 填入 Client ID）';
+      linkBtn.style.display = 'none';
+      unlinkBtn.style.display = 'none';
+      return;
+    }
+
+    if (window.driveBackup.isLinked) {
+      const last = window.driveBackup.lastBackupAt;
+      hint.textContent = last
+        ? `已連結，上次備份：${new Date(last).toLocaleString('zh-TW')}`
+        : '已連結，尚未執行過備份';
+      linkBtn.style.display = 'none';
+      unlinkBtn.style.display = '';
+    } else {
+      hint.textContent = '尚未連結，連結後每次開啟 App 會自動檢查並備份';
+      linkBtn.style.display = '';
+      unlinkBtn.style.display = 'none';
+    }
+  }
+
+  /**
+   * 處理「連結 Google 雲端硬碟」按鈕（需使用者互動觸發 OAuth 同意畫面）
+   * @private
+   */
+  async _handleDriveLink() {
+    try {
+      await window.driveBackup.link();
+      this._renderDriveStatus();
+      this._toast('已連結雲端硬碟，正在執行首次備份…');
+      await this._autoDriveBackupNow();
+    } catch (err) {
+      console.error('連結雲端硬碟失敗:', err);
+      this._toast('連結失敗：' + err.message);
+    }
+  }
+
+  /**
+   * 連結成功後立即執行一次備份（不受每日門檻限制）
+   * @private
+   */
+  async _autoDriveBackupNow() {
+    try {
+      await window.driveBackup.backup(this.transactions, this.categories);
+      this._renderDriveStatus();
+      this._toast('首次備份完成');
+    } catch (err) {
+      console.error('首次備份失敗:', err);
+      this._toast('首次備份失敗：' + err.message);
+    }
+  }
+
+  /**
+   * 處理「取消連結」按鈕
+   * @private
+   */
+  _handleDriveUnlink() {
+    if (!confirm('確定要取消連結雲端硬碟？之後不會再自動備份。')) return;
+    window.driveBackup.unlink();
+    this._renderDriveStatus();
+    this._toast('已取消連結');
   }
 
   // ========== 操作：清除全部 / 匯出 ==========
