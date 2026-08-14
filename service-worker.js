@@ -20,7 +20,8 @@ const CORE_ASSETS = [
   './js/db.js',
   './js/app.js',
   './js/export.js',
-  './icons/icon.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
 ];
 
