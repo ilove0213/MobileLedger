@@ -12,4 +12,4 @@
  * 4. 已授權的 JavaScript 來源填：https://ilove0213.github.io
  * 5. 複製「用戶端 ID」（格式類似 xxxxx.apps.googleusercontent.com）貼到下面
  */
-window.GOOGLE_DRIVE_CLIENT_ID = '';
+window.GOOGLE_DRIVE_CLIENT_ID = '641366057673-cghg8af1bqjghj9ardsb6439daq5nlhd.apps.googleusercontent.com';
